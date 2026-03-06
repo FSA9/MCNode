@@ -1,0 +1,28 @@
+{
+  "graph_name": "Communication Receive Test",
+  "version": "0.0.1",
+  "nodes": {
+    "node_receive_1": {
+      "node_type": "communication_receive_blueprint",
+      "UI_pos": [100.0, 300.0],
+      "properties": {},
+      "inputs": {
+        "frequency": "hello_world"
+      },
+      "execution": {
+        "flow_out": "node_msg_1"
+      },
+      "outputs": {}
+    },
+    "node_msg_1": {
+      "node_type": "action_send_message",
+      "UI_pos": [450.0, 300.0],
+      "properties": {},
+      "inputs": {
+        "message": "跨图通信成功！收到 hello_world 频率！"
+      },
+      "execution": {},
+      "outputs": {}
+    }
+  }
+}

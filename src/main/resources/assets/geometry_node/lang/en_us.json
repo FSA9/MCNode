@@ -1,0 +1,31 @@
+{
+  "menu.node.search": "Search...",
+  "menu.node.back": "<- Back",
+  "menu.node.category.input": "Input",
+  "menu.node.category.geometry": "Geometry",
+  "menu.node.category.math": "Math",
+  "menu.node.item.float": "Float",
+  "menu.node.item.vector3": "Vector3",
+  "menu.node.item.color": "Color",
+  "menu.node.item.cube": "Cube",
+  "menu.node.item.sphere": "Sphere",
+  "menu.node.item.add": "Add",
+  "menu.node.item.subtract": "Subtract",
+
+
+
+
+  "geometry_node.port.flow": "Flow",
+  "geometry_node.port.entity": "Entity",
+  "geometry_node.port.pos": "Pos",
+  "geometry_node.port.block_state": "Block State",
+  "geometry_node.port.attack_source": "Attack Source",
+  "geometry_node.port.direct_source": "Direct Source",
+  "geometry_node.port.damage_type": "Damage Type",
+  
+  "geometry_node.node.event_on_block_break": "OnBlockBreak",
+  "geometry_node.node.event_on_block_place": "OnBlockPlace",
+  "geometry_node.node.event_on_entity_death": "OnEntityDeath"
+
+
+}

@@ -1,0 +1,26 @@
+{
+  "graph_name": "Communication Trigger Test",
+  "version": "0.0.1",
+  "nodes": {
+    "node_evt_break_1": {
+      "node_type": "event_on_block_break",
+      "UI_pos": [100.0, 300.0],
+      "properties": {},
+      "inputs": {},
+      "execution": {
+        "flow_out": "node_trigger_1"
+      },
+      "outputs": {}
+    },
+    "node_trigger_1": {
+      "node_type": "communication_trigger_blueprint",
+      "UI_pos": [450.0, 300.0],
+      "properties": {},
+      "inputs": {
+        "frequency": "hello_world"
+      },
+      "execution": {},
+      "outputs": {}
+    }
+  }
+}

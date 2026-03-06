@@ -1,0 +1,28 @@
+{
+  "menu.node.search": "搜索...",
+  "menu.node.back": "<- 返回",
+  "menu.node.category.input": "输入",
+  "menu.node.category.geometry": "几何体",
+  "menu.node.category.math": "数学",
+  "menu.node.item.float": "浮点数",
+  "menu.node.item.vector3": "三维向量",
+  "menu.node.item.color": "颜色",
+  "menu.node.item.cube": "立方体",
+  "menu.node.item.sphere": "球体",
+  "menu.node.item.add": "加法",
+  "menu.node.item.subtract": "减法",
+
+  "geometry_node.port.flow": "执行流",
+  "geometry_node.port.entity": "实体",
+  "geometry_node.port.pos": "坐标",
+  "geometry_node.port.block_state": "方块属性",
+  "geometry_node.port.attack_source": "攻击来源",
+  "geometry_node.port.direct_source": "直接来源",
+  "geometry_node.port.damage_type": "伤害类型",
+
+  "geometry_node.node.event_on_block_break": "当方块被破坏",
+  "geometry_node.node.event_on_block_place": "当方块被放置",
+  "geometry_node.node.event_on_entity_death": "当实体死亡时"
+
+
+}
