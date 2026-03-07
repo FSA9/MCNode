@@ -9,10 +9,9 @@ import java.util.ArrayList;
 
 /**
  * [存储层] 节点实例纯状态容器
- * 严格对齐 JSON 规范，不做任何逻辑运算。
  */
 public class NodeData {
-    // 节点唯一标识符（外层 Map 的 Key，序列化时忽略）
+    // 索引标识符
     public transient String id;
 
     @SerializedName("node_type")

@@ -6,13 +6,13 @@ import java.util.List;
 
 /**
  * [元数据] 节点全量描述 (Schema)
+ * 移除 menuPath，排版由 NodeRegistry 实体树接管
  */
 public record NodeDef(
         String typeId,
         NodeType category,
         Component displayName,
-        String[] menuPath,
-        List<PortRow> rows
+        List<PortRow> rows // 删除了 menuPath
 ) {
     public static Builder builder(String typeId, NodeType category, Component displayName) {
         return new Builder(typeId, category, displayName);
@@ -22,7 +22,8 @@ public record NodeDef(
         private final String typeId;
         private final NodeType category;
         private final Component displayName;
-        private String[] menuPath = new String[]{"geometry_node.menu.uncategorized"};
+
+        // 删除了 menuPath 变量和 setMenuPath 方法
 
         private final List<PortRow> rows = new ArrayList<>();
 
@@ -30,11 +31,6 @@ public record NodeDef(
             this.typeId = typeId;
             this.category = category;
             this.displayName = displayName;
-        }
-
-        public Builder setMenuPath(String... pathKeys) {
-            this.menuPath = pathKeys;
-            return this;
         }
 
         /**
@@ -48,7 +44,8 @@ public record NodeDef(
         }
 
         public NodeDef build() {
-            return new NodeDef(typeId, category, displayName, menuPath, List.copyOf(rows));
+            // 构建时不再传入 menuPath
+            return new NodeDef(typeId, category, displayName, List.copyOf(rows));
         }
     }
 }

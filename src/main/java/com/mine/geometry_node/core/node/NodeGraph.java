@@ -12,12 +12,10 @@ import java.util.Map;
  * 代表一整张逻辑图，包含所有节点数据。
  */
 public class NodeGraph {
-
-    // 图的元数据
     @SerializedName("graph_name")
     public String graphName;        // 图名称
     @SerializedName("version")
-    public String version;          //
+    public String version;          // 版本
     // public String author;        // 作者信息
     // public long lastModified;    // 最后修改时间
 

@@ -10,7 +10,6 @@ public class Event_OnEntityDeath extends BaseEventNode { // <- 1. 继承 BaseEve
     @Override
     public NodeDef getDefaultDefinition() {
         return NodeDef.builder(TYPE_ID, NodeType.EVENT, Component.translatable("geometry_node.node.event_on_entity_death"))
-                .setMenuPath("geometry_node.menu.event")
                 .addRow(new PortRow(null, StandardPorts.FLOW_OUT.toExec(), UIHint.DEFAULT, null, null))
                 .addRow(new PortRow(null, StandardPorts.ENTITY.toOutput(), UIHint.DEFAULT, null, null))
                 .addRow(new PortRow(null, StandardPorts.DAMAGE_TYPE.toOutput(), UIHint.DEFAULT, null, null))

@@ -24,8 +24,7 @@ public class Math_Operation extends BaseNode {
     }
 
     private NodeDef buildDef(String operator) {
-        NodeDef.Builder builder = NodeDef.builder(TYPE_ID, NodeType.MATH, Component.translatable("geometry_node.node.math_operation"))
-                .setMenuPath("geometry_node.menu.maths", "geometry_node.menu.operation");
+        NodeDef.Builder builder = NodeDef.builder(TYPE_ID, NodeType.MATH, Component.translatable("geometry_node.node.math_operation"));
 
         // 1: 右侧 VALUE 输出
         builder.addRow(new PortRow(

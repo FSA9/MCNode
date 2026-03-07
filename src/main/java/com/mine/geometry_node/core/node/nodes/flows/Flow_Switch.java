@@ -42,8 +42,7 @@ public class Flow_Switch extends BaseNode {
     }
 
     private NodeDef buildDef(List<Integer> branchIndices) {
-        NodeDef.Builder builder = NodeDef.builder(TYPE_ID, NodeType.FLOW_CONTROL, Component.translatable("geometry_node.node.flow_switch"))
-                .setMenuPath("geometry_node.menu.flow");
+        NodeDef.Builder builder = NodeDef.builder(TYPE_ID, NodeType.FLOW_CONTROL, Component.translatable("geometry_node.node.flow_switch"));
 
         // 第1行：输入执行流
         builder.addRow(new PortRow(

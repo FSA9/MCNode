@@ -19,18 +19,13 @@ import java.util.Set;
  * 这里的图 ID 通常是绑定到世界本身（或作为全局事件监听器）运行的，而非特定实体。
  */
 public class GlobalGraphStorage extends SavedData {
-    
     // Constants & Fields
-
     private static final String DATA_NAME = "geometry_node_global";
     private static final String TAG_GRAPHS = "GlobalGraphs";
 
     // 全局绑定图ID集合
     private final Set<String> globalGraphs = new HashSet<>();
 
-    /**
-     * 工厂实例，用于 SavedData 的创建和加载机制。
-     */
     private static final SavedData.Factory<GlobalGraphStorage> FACTORY = new SavedData.Factory<>(
             GlobalGraphStorage::new,
             GlobalGraphStorage::load,
@@ -41,7 +36,6 @@ public class GlobalGraphStorage extends SavedData {
 
     /**
      * 获取当前存档的全局图存储实例。
-     * 注意：全局数据通常存储在主世界 (Overworld) 的数据管理器中，以保证跨维度的一致性。
      * @param level 任意服务端世界层级
      * @return 存储实例（如果不存在则自动创建）
      */
@@ -58,7 +52,7 @@ public class GlobalGraphStorage extends SavedData {
     // Business Logic (API)
 
     /**
-     * 获取所有全局绑定的图 ID。
+     * 获取所有全局绑定图 ID。
      * @return 不可修改的集合视图，防止外部直接操作导致未标记 Dirty。
      */
     public Set<String> getGraphs() {
@@ -66,7 +60,7 @@ public class GlobalGraphStorage extends SavedData {
     }
 
     /**
-     * 添加一个全局图绑定。
+     * 添加全局图绑定。
      * @param graphId 图的唯一标识符
      */
     public void addGraph(String graphId) {
@@ -76,7 +70,7 @@ public class GlobalGraphStorage extends SavedData {
     }
 
     /**
-     * 移除一个全局图绑定。
+     * 移除全局图绑定。
      * @param graphId 图的唯一标识符
      */
     public void removeGraph(String graphId) {

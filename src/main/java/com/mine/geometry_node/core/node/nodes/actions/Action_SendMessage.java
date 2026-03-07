@@ -15,7 +15,6 @@ public class Action_SendMessage extends BaseActionNode {
     @Override
     public NodeDef getDefaultDefinition() {
         return NodeDef.builder(TYPE_ID, NodeType.ACTION, Component.translatable("geometry_node.node.action_send_message"))
-                .setMenuPath("geometry_node.menu.action")
                 .addRow(new PortRow(StandardPorts.FLOW_IN.toExec(), StandardPorts.FLOW_OUT.toExec(), UIHint.DEFAULT, null, null))
                 .addRow(new PortRow(StandardPorts.TARGET.toInput(), null, UIHint.DEFAULT, null, null))
                 .addRow(new PortRow(StandardPorts.MESSAGE.toInput("Hello Geometry Node!"), null, UIHint.INPUT, null, null))
@@ -24,7 +23,7 @@ public class Action_SendMessage extends BaseActionNode {
 
     @Override
     protected void performAction(ExecutionContext context) {
-        System.out.print(11111111);
+//        System.out.print(11111111);
         List<Entity> targets = getTargets(context, StandardPorts.TARGET.getId());
         if (targets.isEmpty()) return;
 

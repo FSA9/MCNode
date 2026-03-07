@@ -31,6 +31,9 @@ public class GraphDataAttachment {
     // 活跃进程列表
     private final List<GraphProcess> processes = new ArrayList<>();
 
+    // 持久化属性存储 (Attribute 节点)
+    private final CompoundTag attributes = new CompoundTag();
+
     // Constructor
 
     public GraphDataAttachment() {}
@@ -92,6 +95,24 @@ public class GraphDataAttachment {
         return processes;
     }
 
+
+    // Attribute
+
+    public void setAttribute(String key, Object value) {
+        if (value == null) {
+            this.attributes.remove(key);
+        } else {
+            // 这里需要 import com.mine.geometry_node.core.execution.variables.VariableRegistry;
+            net.minecraft.nbt.Tag tag = com.mine.geometry_node.core.execution.variables.VariableRegistry.toTag(value);
+            if (tag != null) this.attributes.put(key, tag);
+        }
+    }
+
+    public Object getAttribute(String key) {
+        if (!this.attributes.contains(key)) return null;
+        return com.mine.geometry_node.core.execution.variables.VariableRegistry.fromTag(this.attributes.get(key));
+    }
+
     // Serialization (NBT)
 
     /**
@@ -116,6 +137,10 @@ public class GraphDataAttachment {
                 processList.add(processTag);
             }
             tag.put("ActiveProcesses", processList);
+        }
+
+        if (!attributes.isEmpty()) {
+            tag.put("Attributes", attributes.copy());
         }
 
         return tag;
@@ -151,6 +176,13 @@ public class GraphDataAttachment {
                 } else {
                     System.err.printf("[GraphDataAttachment] Failed to restore process '%s' - Graph Index not found.%n", graphId);
                 }
+            }
+        }
+        this.attributes.getAllKeys().clear();
+        if (tag.contains("Attributes", Tag.TAG_COMPOUND)) {
+            CompoundTag attrTag = tag.getCompound("Attributes");
+            for (String key : attrTag.getAllKeys()) {
+                this.attributes.put(key, attrTag.get(key).copy());
             }
         }
     }

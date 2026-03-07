@@ -123,4 +123,18 @@ public interface ExecutionContext {
      * 用于 Flow_Switch 等动态端口节点进行循环探测。
      */
     boolean hasPort(String portName);
+
+    /**
+     * [持久化属性写入] 设置实体或全局的持久化属性。
+     * @param target 目标实体。若为 null，则设置到当前世界的全局存储中。
+     * @param name 属性名
+     * @param value 属性值 (传 null 视为删除)
+     */
+    void setPersistentAttribute(@Nullable Object target, String name, Object value);
+
+    /**
+     * [持久化属性读取]
+     */
+    @Nullable
+    Object getPersistentAttribute(@Nullable Object target, String name);
 }

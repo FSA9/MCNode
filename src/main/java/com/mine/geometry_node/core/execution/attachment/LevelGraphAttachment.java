@@ -29,6 +29,8 @@ public class LevelGraphAttachment extends SavedData {
     // 活跃进程列表
     private final List<GraphProcess> processes = new ArrayList<>();
 
+    private final CompoundTag attributes = new CompoundTag();
+
     /**
      * 工厂实例，用于 SavedData 的创建和加载机制。
      */
@@ -47,6 +49,21 @@ public class LevelGraphAttachment extends SavedData {
      */
     public static LevelGraphAttachment get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(FACTORY, DATA_NAME);
+    }
+
+    public void setAttribute(String key, Object value) {
+        if (value == null) {
+            this.attributes.remove(key);
+        } else {
+            net.minecraft.nbt.Tag tag = com.mine.geometry_node.core.execution.variables.VariableRegistry.toTag(value);
+            if (tag != null) this.attributes.put(key, tag);
+        }
+        this.setDirty(); // 标记脏数据，让 MC 存盘
+    }
+
+    public Object getAttribute(String key) {
+        if (!this.attributes.contains(key)) return null;
+        return com.mine.geometry_node.core.execution.variables.VariableRegistry.fromTag(this.attributes.get(key));
     }
 
     // --- Constructor ---
@@ -109,6 +126,13 @@ public class LevelGraphAttachment extends SavedData {
                 }
             }
         }
+        if (tag.contains("Attributes", Tag.TAG_COMPOUND)) {
+            CompoundTag attrTag = tag.getCompound("Attributes");
+            for (String key : attrTag.getAllKeys()) {
+                attachment.attributes.put(key, attrTag.get(key).copy());
+            }
+        }
+
         return attachment;
     }
 
@@ -122,6 +146,9 @@ public class LevelGraphAttachment extends SavedData {
                 processList.add(processTag);
             }
             tag.put(TAG_PROCESSES, processList);
+        }
+        if (!attributes.isEmpty()) {
+            tag.put("Attributes", attributes.copy());
         }
         return tag;
     }

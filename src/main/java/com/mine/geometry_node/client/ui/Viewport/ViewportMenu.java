@@ -1,8 +1,9 @@
 package com.mine.geometry_node.client.ui.Viewport;
 
 import com.mine.geometry_node.client.ui.UIConstants;
+import com.mine.geometry_node.core.node.NodeCategory;
 import com.mine.geometry_node.core.node.NodeRegistry;
-import com.mine.geometry_node.core.node.nodes.NodeDef;
+import com.mine.geometry_node.core.node.nodes.BaseNode;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.drawable.ShapeDrawable;
 import icyllis.modernui.text.Editable;
@@ -13,104 +14,44 @@ import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.*;
 import net.minecraft.network.chat.Component;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Stack;
+import java.util.stream.Collectors;
 
-/**
- * 视口右键菜单 (重构版 - 基于路径数组动态构建)
- */
 public class ViewportMenu extends FrameLayout {
 
-    private LinearLayout mContentLayout; // 菜单主体
-    private LinearLayout mListContainer; // 列表容器
-    private EditText mSearchBox;         // 搜索框
-
-    // 数据部分：根目录
-    private final MenuItem mRootFolder = new MenuItem("Root", true, null);
-    private MenuItem mCurrentFolder = mRootFolder;
+    private LinearLayout mContentLayout;
+    private LinearLayout mListContainer;
+    private EditText mSearchBox;
 
     private Viewport mViewport;
     private float mMenuX, mMenuY;
 
+    private final Stack<NodeCategory> mHistory = new Stack<>();
+    private NodeCategory mCurrentFolder;
+
     public ViewportMenu(Context context) {
         super(context);
-        initDataFromRegistry();
         initUI(context);
-        refreshList(mRootFolder);
-    }
-
-    /** [核心逻辑] 从 NodeRegistry 动态读取 menuPath 并构建多级菜单树 */
-    private void initDataFromRegistry() {
-        Collection<NodeDef> definitions = NodeRegistry.INSTANCE.getAllDefinitions();
-
-        for (NodeDef def : definitions) {
-            String[] pathKeys = def.menuPath();
-            MenuItem currentFolder = mRootFolder;
-
-            // 1. 逐级遍历/创建路径文件夹
-            if (pathKeys != null) {
-                for (String key : pathKeys) {
-                    MenuItem nextFolder = findChildFolder(currentFolder, key);
-
-                    // 如果该层级目录不存在，则创建它
-                    if (nextFolder == null) {
-                        // 使用 Component 获取翻译文本作为显示名称
-                        String displayName = Component.translatable(key).getString();
-                        nextFolder = new MenuItem(displayName, true, currentFolder);
-                        nextFolder.translationKey = key; // 记录原 Key，用于严格匹配同级目录
-                        currentFolder.children.add(nextFolder);
-                    }
-                    currentFolder = nextFolder;
-                }
-            }
-
-            // 2. 此时 currentFolder 是最深层目录，在此处加入具体的节点项
-            MenuItem nodeItem = new MenuItem(def.displayName().getString(), false, currentFolder);
-            nodeItem.nodeTypeId = def.typeId();
-            currentFolder.children.add(nodeItem);
-        }
-
-        // 3. 对根目录及所有子目录进行按名称的字母排序
-        sortMenuRecursive(mRootFolder);
-    }
-
-    /** 在父目录下根据 translationKey 查找是否已存在同名子目录 */
-    private MenuItem findChildFolder(MenuItem parent, String key) {
-        for (MenuItem child : parent.children) {
-            if (child.isFolder && key.equals(child.translationKey)) {
-                return child;
-            }
-        }
-        return null;
-    }
-
-    /** 递归排序菜单项 */
-    private void sortMenuRecursive(MenuItem folder) {
-        folder.children.sort(Comparator.comparing(a -> a.name));
-        for (MenuItem child : folder.children) {
-            if (child.isFolder) {
-                sortMenuRecursive(child);
-            }
-        }
+        navigateTo(NodeRegistry.INSTANCE.ROOT);
     }
 
     private void initUI(Context context) {
-        // 1. 设置根布局（全屏透明遮罩，点击关闭）
         this.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         this.setOnClickListener(v -> dismiss());
 
-        // 2. 初始化菜单主体容器
         mContentLayout = new LinearLayout(context);
         mContentLayout.setOrientation(LinearLayout.VERTICAL);
         mContentLayout.setBackground(createRectDrawable(
                 UIConstants.ViewPort.NodeMenu.BG_COLOR,
                 UIConstants.ViewPort.NodeMenu.BORDER_RADIUS));
         mContentLayout.setPadding(4, 4, 4, 4);
-        mContentLayout.setOnClickListener(v -> {}); // 拦截点击
+        mContentLayout.setOnClickListener(v -> {});
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(UIConstants.ViewPort.NodeMenu.ITEM_WEIGHT, LayoutParams.WRAP_CONTENT);
         mContentLayout.setLayoutParams(lp);
 
-        // 3. 搜索框
         mSearchBox = new EditText(context);
         mSearchBox.setHint(Component.translatable("menu.node.search").getString());
         float searchFontSize = UIConstants.ViewPort.NodeMenu.HEIGHT_SEARCH_BOX * (float)UIConstants.ViewPort.NodeMenu.TEXT_SIZE;
@@ -130,7 +71,6 @@ public class ViewportMenu extends FrameLayout {
         searchLp.setMargins(4, 4, 4, 6);
         mContentLayout.addView(mSearchBox, searchLp);
 
-        // 4. 列表滚动区
         ScrollView sv = new ScrollView(context);
         mListContainer = new LinearLayout(context);
         mListContainer.setOrientation(LinearLayout.VERTICAL);
@@ -162,48 +102,76 @@ public class ViewportMenu extends FrameLayout {
         if (getParent() != null) ((ViewGroup) getParent()).removeView(this);
     }
 
-    private void refreshList(MenuItem folder) {
+    // --- 核心导航&渲染逻辑 ---
+
+    private void navigateTo(NodeCategory folder) {
+        if (mCurrentFolder != null && folder != mCurrentFolder) {
+            mHistory.push(mCurrentFolder); // 记录来时的路
+        }
         mCurrentFolder = folder;
+        renderCurrentFolder();
+    }
+
+    private void navigateBack() {
+        if (!mHistory.isEmpty()) {
+            mCurrentFolder = mHistory.pop();
+            renderCurrentFolder();
+        }
+    }
+
+    private void renderCurrentFolder() {
         mListContainer.removeAllViews();
 
-        if (folder != mRootFolder && folder.parent != null) {
-            addClickItem("← " + Component.translatable("menu.node.back").getString(), 0xFF888888, v -> refreshList(folder.parent));
+        // 1. “返回”
+        if (mCurrentFolder != NodeRegistry.INSTANCE.ROOT) {
+            addClickItem("← " + Component.translatable("menu.node.back").getString(), 0xFF888888, v -> navigateBack());
         }
 
-        List<MenuItem> target = (folder == null) ? mRootFolder.children : folder.children;
-
-        for (MenuItem item : target) {
-            String label = item.name + (item.isFolder ? "  ›" : "");
+        // 2. 渲染子文件夹
+        for (NodeCategory sub : mCurrentFolder.getSubCategories()) {
+            String label = Component.translatable(sub.translationKey).getString() + "  ›";
             addClickItem(label, UIConstants.ViewPort.NodeMenu.TEXT_COLOR, v -> {
-                if (item.isFolder) {
-                    refreshList(item);
-                } else {
-                    if (mViewport != null && item.nodeTypeId != null) {
-                        mViewport.addNode(mMenuX, mMenuY, item.nodeTypeId);
-                    }
-                    dismiss();
+                mSearchBox.setText("");
+                navigateTo(sub);
+            });
+        }
+
+        // 3. 渲染节点
+        for (BaseNode node : mCurrentFolder.getNodes()) {
+            String label = node.getDefaultDefinition().displayName().getString();
+            addClickItem(label, UIConstants.ViewPort.NodeMenu.TEXT_COLOR, v -> {
+                if (mViewport != null) {
+                    mViewport.addNode(mMenuX, mMenuY, node.getTypeId());
                 }
+                dismiss();
             });
         }
     }
 
-    private void performSearch(String query) {
-        if (query.isEmpty()) { refreshList(mCurrentFolder); return; }
-        mListContainer.removeAllViews();
-        searchRecursive(mRootFolder.children, query.toLowerCase());
-    }
+    // --- 搜索逻辑 ---
 
-    private void searchRecursive(List<MenuItem> list, String q) {
-        for (MenuItem item : list) {
-            if (item.isFolder) searchRecursive(item.children, q);
-            else if (item.name.toLowerCase().contains(q)) {
-                addClickItem(item.name, UIConstants.ViewPort.NodeMenu.TEXT_COLOR, v -> {
-                    if (mViewport != null && item.nodeTypeId != null) mViewport.addNode(mMenuX, mMenuY, item.nodeTypeId);
+    private void performSearch(String query) {
+        if (query.trim().isEmpty()) {
+            renderCurrentFolder();
+            return;
+        }
+        mListContainer.removeAllViews();
+        String q = query.toLowerCase().trim();
+
+        for (com.mine.geometry_node.core.node.nodes.NodeDef def : NodeRegistry.INSTANCE.getAllDefinitions()) {
+            String name = def.displayName().getString();
+            if (name.toLowerCase().contains(q)) {
+                addClickItem(name, UIConstants.ViewPort.NodeMenu.TEXT_COLOR, v -> {
+                    if (mViewport != null) {
+                        mViewport.addNode(mMenuX, mMenuY, def.typeId());
+                    }
                     dismiss();
                 });
             }
         }
     }
+
+    // --- 底层 UI 组件 ---
 
     private void addClickItem(String text, int color, OnClickListener listener) {
         TextView tv = new TextView(getContext());
@@ -236,19 +204,5 @@ public class ViewportMenu extends FrameLayout {
         d.setColor(color);
         d.setCornerRadius(radius);
         return d;
-    }
-
-    // [新增 translationKey 字段，支持精确合并]
-    private static class MenuItem {
-        String name;
-        boolean isFolder;
-        String nodeTypeId;
-        String translationKey; // 用于比较的原始 Key
-        MenuItem parent;
-        List<MenuItem> children = new ArrayList<>();
-
-        MenuItem(String n, boolean f, MenuItem p) {
-            name = n; isFolder = f; parent = p;
-        }
     }
 }

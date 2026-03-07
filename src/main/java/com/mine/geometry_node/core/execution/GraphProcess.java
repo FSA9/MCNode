@@ -18,9 +18,9 @@ import java.util.*;
  */
 public class GraphProcess {
 
-    // ===================================================================================
+    // ====================================================
     // 数据结构定义 (Data Structures)
-    // ===================================================================================
+    // ====================================================
 
     public enum State {
         RUNNING,    // 活跃状态：正在执行或准备执行
@@ -31,44 +31,44 @@ public class GraphProcess {
     /** 描述一个被挂起的延迟任务 */
     private record ScheduledTask(long wakeUpTick, String resumeNodeId) {}
 
-    // ===================================================================================
+    // ====================================================
     // 成员变量 (Fields)
-    // ===================================================================================
+    // ====================================================
 
-    // 1. 基础配置 (Basic Configuration)
+    // 基础配置
     private final String graphId;
     private final RuntimeGraphIndex index;
     private final InnerContext context; // 外观模式：暴露给节点使用的受限 API
 
-    // 2. 运行时状态 (Runtime State)
+    // 运行时状态
     private State state = State.RUNNING;
-    private String currentFlowId;       // 当前待执行的节点 ID
-    private String activeNodeId;        // 当前正在计算/执行的节点 ID (用于溯源、报错提示)
+    private String currentFlowId;       // 当前待执行节点 ID
+    private String activeNodeId;        // 当前正在计算/执行的节点 ID
 
-    // 3. 任务调度 (Task Scheduling)
+    // 任务调度
     private final List<ScheduledTask> sleepingTasks = new ArrayList<>(); // 等待唤醒的协程队列
     private boolean needsTimeRebase = false;                             // 读档标记：指示是否需要将相对时间转换为绝对世界时间
 
-    // 4. 内存与作用域 (Memory & Scope)
+    // 内存与作用域
     private final Deque<String> executionStack = new LinkedList<>();              // 指令执行栈 (LIFO)
     private final Deque<Map<String, Object>> variableStack = new LinkedList<>();  // 局部变量栈 (支持作用域嵌套)
     private final Map<String, Object> eventData = new HashMap<>();                // 事件瞬时数据沙箱 (如：破坏方块的坐标、攻击者)
 
-    // 5. 帧级缓存 (Frame Cache - Transient)
-    private final Map<String, Object> frameCache = new HashMap<>();               // 避免单次 Tick 内重复计算同一数据节点
+    // 帧级缓存
+    private final Map<String, Object> frameCache = new HashMap<>();               // 帧缓存
     private final Set<String> recursionGuard = new HashSet<>();                   // 递归深度/环形依赖检测防护
 
-    // 6. 外部环境 (Environment Context - Transient)
+    // 外部环境
     private ServerLevel level;
     private Entity entity; // 挂载该图的宿主实体
 
 
-    // ===================================================================================
+    // ====================================================
     // 构造与初始化 (Constructors)
-    // ===================================================================================
+    // ====================================================
 
     /**
-     * [全新启动] 创建并初始化一个新的执行进程。
+     * 创建并初始化一个新的执行进程。
      */
     public GraphProcess(String graphId, RuntimeGraphIndex index, String startNodeId) {
         this.graphId = graphId;
@@ -98,10 +98,9 @@ public class GraphProcess {
             ListTag tasksTag = tag.getList("SleepingTasks", Tag.TAG_COMPOUND);
             for (int i = 0; i < tasksTag.size(); i++) {
                 CompoundTag taskTag = tasksTag.getCompound(i);
-                // 读档时由于尚未绑定 Level，wakeUpTick 暂存的是"剩余相对时间"
                 this.sleepingTasks.add(new ScheduledTask(taskTag.getLong("WaitRemaining"), taskTag.getString("ResumeNodeId")));
             }
-            this.needsTimeRebase = true; // 标记需要在首次 Tick 时校准时间轴
+            this.needsTimeRebase = true;
         }
 
         // 3. 恢复事件数据沙箱
@@ -140,9 +139,9 @@ public class GraphProcess {
     }
 
 
-    // ===================================================================================
+    // ====================================================
     // 生命周期与驱动 API (Lifecycle & Public API)
-    // ===================================================================================
+    // ====================================================
 
     public void setEnvironment(ServerLevel level, @Nullable Entity entity) {
         this.level = level;
@@ -207,10 +206,9 @@ public class GraphProcess {
         }
     }
 
-
-    // ===================================================================================
-    // 核心执行引擎 (Core Execution Logic - Push Model)
-    // ===================================================================================
+    // ====================================================
+    // 核心执行引擎
+    // ====================================================
 
     /**
      * 执行控制流逻辑 (Push Model)。
@@ -218,7 +216,7 @@ public class GraphProcess {
      */
     private void runExecutionLoop() {
         int steps = 0;
-        final int MAX_STEPS = 100; // 防御性编程：防止死循环/过于密集的逻辑卡死服务端
+        final int MAX_STEPS = 1000; // 单帧上限
 
         while ((currentFlowId != null || !executionStack.isEmpty()) && state == State.RUNNING) {
 
@@ -230,7 +228,7 @@ public class GraphProcess {
 
             // 2. 帧限流防护
             if (steps++ > MAX_STEPS) {
-                return; // 超过配额，主动让出执行权，下一 Tick 继续
+                return;
             }
 
             // 3. 节点寻址与校验
@@ -317,9 +315,9 @@ public class GraphProcess {
     }
 
 
-    // ===================================================================================
-    // 数据拉取模型 (Data Flow Logic - Pull Model)
-    // ===================================================================================
+    // ====================================================
+    // 数据拉取模型
+    // ====================================================
 
     /**
      * 递归向上游节点索要数据 (Pull Model)。
@@ -368,9 +366,9 @@ public class GraphProcess {
     }
 
 
-    // ===================================================================================
-    // 序列化与反序列化 (NBT Serialization)
-    // ===================================================================================
+    // ====================================================
+    // 序列化&反序列化
+    // ====================================================
 
     public CompoundTag save(CompoundTag tag) {
         // 1. 基础状态
@@ -457,13 +455,10 @@ public class GraphProcess {
     }
 
 
-    // ===================================================================================
-    // 内部类：上下文实现 (Inner Class: Context Implementation)
-    // ===================================================================================
+    // ====================================================
+    // 内部类：上下文实现
+    // ====================================================
 
-    /**
-     * 门面模式的内部实现，代理所有节点的对外读写请求。
-     */
     private class InnerContext implements ExecutionContext {
 
         @Override
@@ -537,7 +532,7 @@ public class GraphProcess {
         public Object getEventData(String key) {
             Object val = GraphProcess.this.eventData.get(key);
 
-            // 运行时自动解析 UUID -> Entity
+            // UUID -> Entity 解析
             if (val instanceof UUID uuid) {
                 if (level == null) return null;
                 Entity resolvedEntity = level.getEntity(uuid);
@@ -556,6 +551,38 @@ public class GraphProcess {
         public boolean hasPort(String portName) {
             String currentNodeId = GraphProcess.this.activeNodeId;
             return currentNodeId != null && GraphProcess.this.index.hasPort(currentNodeId, portName);
+        }
+
+        @Override
+        public void setPersistentAttribute(@Nullable Object target, String name, Object value) {
+            // 1. 目标是实体：存入实体的 GraphDataAttachment
+            if (target instanceof Entity ent) {
+                // 请确保 import com.mine.geometry_node.GeometryNode;
+                com.mine.geometry_node.core.execution.attachment.GraphDataAttachment att =
+                        ent.getData(com.mine.geometry_node.GeometryNode.GRAPH_DATA_ATTACHMENT);
+                if (att != null) att.setAttribute(name, value);
+            }
+            // 2. 目标为空：存入全局/当前维度的 LevelGraphAttachment
+            else if (target == null && level != null) {
+                com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment att =
+                        com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment.get(level);
+                att.setAttribute(name, value);
+            }
+        }
+
+        @Override
+        public Object getPersistentAttribute(@Nullable Object target, String name) {
+            if (target instanceof Entity ent) {
+                com.mine.geometry_node.core.execution.attachment.GraphDataAttachment att =
+                        ent.getData(com.mine.geometry_node.GeometryNode.GRAPH_DATA_ATTACHMENT);
+                return att != null ? att.getAttribute(name) : null;
+            }
+            else if (target == null && level != null) {
+                com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment att =
+                        com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment.get(level);
+                return att.getAttribute(name);
+            }
+            return null;
         }
     }
 }
