@@ -16,6 +16,7 @@ public enum PortType {
     BOOLEAN("布尔", 0xFFE74C3C, false),
     STRING("字符串", 0xFF9B59B6, ""),
     ENTITY("实体", 0xFFE91E63, null),
+    ITEM("物品", 0xFFE91E63, null),
     BLOCK("方块", 0xFF8D6E63, null),
     XYZ("XYZ", 0xFF00BCD4, Vec3.ZERO),
     LIST("列表", 0xFFFF9800, List.of()),
@@ -79,10 +80,11 @@ public enum PortType {
         boolean isInMath  = (inputport == INTEGER || inputport == FLOAT || inputport == BOOLEAN);
         if (isOutMath && isInMath) return true;
 
-        // 2. 万物皆可转字符串 (STRING)
+        // 2. 万物皆可转STRING
         if (inputport == STRING) {
             if (outputport == INTEGER || outputport == FLOAT || outputport == BOOLEAN ||
-                    outputport == ENTITY || outputport == BLOCK || outputport == XYZ) {
+                    outputport == ENTITY || outputport == BLOCK || outputport == XYZ ||
+                    outputport == ITEM || outputport == LIST) {
                 return true;
             }
         }
@@ -91,15 +93,17 @@ public enum PortType {
         if (outputport == STRING) {
             if (inputport == ENTITY) return true; // 字符串尝试解析为 UUID 寻找实体
             if (inputport == BLOCK)  return true; // 字符串尝试解析为方块 Registry ID
+            if (inputport == ITEM)   return true; // 字符串尝试解析为物品 Registry ID
+            if (inputport == XYZ)    return true; // 字符串尝试解析为坐标数组 "[x,y,z]"
+            if (inputport == BOOLEAN) return true; // 字符串尝试解析为 "true"/"false"
         }
 
-        // 4. [新增] 列表聚合 (LIST -> ENTITY)
+        // 4. 列表聚合 (LIST -> ENTITY)
         // 允许将实体列表连入单个实体端口，由底层动作节点自动拆解执行
         if (outputport == LIST && inputport == ENTITY) {
             return true;
         }
 
-        // 其他情况 (包含 LIST 互转) 一律不兼容
         return false;
     }
 }

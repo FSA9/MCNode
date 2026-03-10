@@ -4,12 +4,13 @@ import com.mine.geometry_node.GeometryNode;
 import com.mine.geometry_node.core.execution.attachment.GraphDataAttachment;
 import com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment;
 import com.mine.geometry_node.core.node.nodes.StandardPorts;
-import com.mine.geometry_node.core.node.nodes.events.Event_OnBlockBreak;
-import com.mine.geometry_node.core.node.nodes.events.Event_OnBlockPlace;
-import com.mine.geometry_node.core.node.nodes.events.Event_OnEntityDeath;
+import com.mine.geometry_node.core.node.nodes.events.*;
+import com.mine.geometry_node.core.node.nodes.events.entity.*;
+import dev.architectury.event.CompoundEventResult;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.BlockEvent;
 import dev.architectury.event.events.common.EntityEvent;
+import dev.architectury.event.events.common.InteractionEvent;
 import dev.architectury.event.events.common.TickEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -105,7 +106,7 @@ public class GraphEventHandler {
             if (!level.isClientSide()) {
                 String dimensionId = level.dimension().location().toString();
 
-                GraphEngine.dispatchEvent((ServerLevel) level, player, Event_OnBlockBreak.TYPE_ID, process -> {
+                GraphEngine.dispatchEvent((ServerLevel) level, player, OnBlockBreak.TYPE_ID, process -> {
                     process.setEventData(StandardPorts.XYZ.getId(), pos);
                     process.setEventData(StandardPorts.BLOCK_STATE.getId(), state);
                     process.setEventData(StandardPorts.DIMENSION.getId(), dimensionId);
@@ -120,12 +121,51 @@ public class GraphEventHandler {
             if (!level.isClientSide() && entity != null) {
                 String dimensionId = level.dimension().location().toString();
 
-                GraphEngine.dispatchEvent((ServerLevel) level, entity, Event_OnBlockPlace.TYPE_ID, process -> {
+                GraphEngine.dispatchEvent((ServerLevel) level, entity, OnBlockPlace.TYPE_ID, process -> {
                     process.setEventData(StandardPorts.XYZ.getId(), pos);
                     process.setEventData(StandardPorts.BLOCK_STATE.getId(), state);
                     process.setEventData(StandardPorts.DIMENSION.getId(), dimensionId);
                     process.setEventData(StandardPorts.ENTITY.getId(), entity);
                 });
+            }
+            return EventResult.pass();
+        });
+
+        // 实体受伤 / 造成伤害事件
+        EntityEvent.LIVING_HURT.register((entity, source, amount) -> {
+            if (!entity.level().isClientSide()) {
+                net.minecraft.server.level.ServerLevel serverLevel = (net.minecraft.server.level.ServerLevel) entity.level();
+                net.minecraft.world.entity.Entity attacker = source.getEntity();
+                net.minecraft.world.entity.Entity directSource = source.getDirectEntity();
+                String damageTypeId = source.getMsgId();
+
+                // 1. 实体受伤
+                com.mine.geometry_node.core.execution.GraphEngine.dispatchEvent(serverLevel, entity, OnEntityHurt.TYPE_ID, process -> {
+                    process.setEventData(StandardPorts.ENTITY.getId(), entity);
+                    process.setEventData(StandardPorts.VALUE.getId(), amount);
+                    process.setEventData(StandardPorts.DAMAGE_TYPE.getId(), damageTypeId);
+
+                    if (attacker != null) {
+                        process.setEventData(StandardPorts.ATTACK_SOURCE.getId(), attacker);
+                    }
+                    if (directSource != null) {
+                        process.setEventData(StandardPorts.DIRECT_SOURCE.getId(), directSource);
+                    }
+                });
+
+                // 2. 实体造成伤害
+                if (attacker != null) {
+                    com.mine.geometry_node.core.execution.GraphEngine.dispatchEvent(serverLevel, attacker, OnEntityDealDamage.TYPE_ID, process -> {
+                        process.setEventData(StandardPorts.ENTITY.getId(), attacker);
+                        process.setEventData(StandardPorts.TARGET.getId(), entity);
+                        process.setEventData(StandardPorts.VALUE.getId(), amount);
+                        process.setEventData(StandardPorts.DAMAGE_TYPE.getId(), damageTypeId);
+
+                        if (directSource != null) {
+                            process.setEventData(StandardPorts.DIRECT_SOURCE.getId(), directSource);
+                        }
+                    });
+                }
             }
             return EventResult.pass();
         });
@@ -139,7 +179,7 @@ public class GraphEventHandler {
                 net.minecraft.world.entity.Entity directSource = source.getDirectEntity();
                 String damageTypeId = source.getMsgId();
 
-                GraphEngine.dispatchEvent(serverLevel, entity, Event_OnEntityDeath.TYPE_ID, process -> {
+                GraphEngine.dispatchEvent(serverLevel, entity, OnEntityDeath.TYPE_ID, process -> {
                     process.setEventData(StandardPorts.ENTITY.getId(), entity);
                     process.setEventData(StandardPorts.DAMAGE_TYPE.getId(), damageTypeId);
 
@@ -152,6 +192,48 @@ public class GraphEventHandler {
                 });
             }
             return EventResult.pass();
+        });
+
+        // 实体交互方块
+        InteractionEvent.RIGHT_CLICK_BLOCK.register((player, hand, pos, face) -> {
+            if (!player.level().isClientSide()) {
+                net.minecraft.server.level.ServerLevel serverLevel = (net.minecraft.server.level.ServerLevel) player.level();
+                net.minecraft.world.level.block.state.BlockState state = serverLevel.getBlockState(pos);
+
+                com.mine.geometry_node.core.execution.GraphEngine.dispatchEvent(serverLevel, player, EntityInteractBlock.TYPE_ID, process -> {
+                    process.setEventData(StandardPorts.TRIGGER_ENTITY.getId(), player);
+                    process.setEventData(StandardPorts.XYZ.getId(), pos);
+                    process.setEventData(StandardPorts.BLOCK_STATE.getId(), state);
+                });
+            }
+            return EventResult.pass();
+        });
+
+        // 实体交互实体
+        InteractionEvent.INTERACT_ENTITY.register((player, entity, hand) -> {
+            if (!player.level().isClientSide()) {
+                net.minecraft.server.level.ServerLevel serverLevel = (net.minecraft.server.level.ServerLevel) player.level();
+
+                com.mine.geometry_node.core.execution.GraphEngine.dispatchEvent(serverLevel, player, EntityInteractEntity.TYPE_ID, process -> {
+                    process.setEventData(StandardPorts.TRIGGER_ENTITY.getId(), player);
+                    process.setEventData(StandardPorts.TARGET.getId(), entity);
+                });
+            }
+            return EventResult.pass();
+        });
+
+        // 实体使用物品
+        InteractionEvent.RIGHT_CLICK_ITEM.register((player, hand) -> {
+            if (!player.level().isClientSide()) {
+                net.minecraft.server.level.ServerLevel serverLevel = (net.minecraft.server.level.ServerLevel) player.level();
+                net.minecraft.world.item.ItemStack itemStack = player.getItemInHand(hand);
+
+                com.mine.geometry_node.core.execution.GraphEngine.dispatchEvent(serverLevel, player, EntityUseItem.TYPE_ID, process -> {
+                    process.setEventData(StandardPorts.TRIGGER_ENTITY.getId(), player);
+                    process.setEventData(StandardPorts.ITEM.getId(), itemStack);
+                });
+            }
+            return CompoundEventResult.pass();
         });
     }
 

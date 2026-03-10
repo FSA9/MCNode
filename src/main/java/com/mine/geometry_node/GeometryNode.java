@@ -41,13 +41,13 @@ public class GeometryNode {
                     .serialize(new IAttachmentSerializer<CompoundTag, GraphDataAttachment>() {
                         @Override
                         public CompoundTag write(GraphDataAttachment attachment, HolderLookup.Provider provider) {
-                            return attachment.save(new CompoundTag());
+                            return attachment.save(new CompoundTag(), provider);
                         }
 
                         @Override
                         public GraphDataAttachment read(IAttachmentHolder holder, CompoundTag tag, HolderLookup.Provider provider) {
                             GraphDataAttachment newAttachment = new GraphDataAttachment();
-                            newAttachment.load(tag);
+                            newAttachment.load(tag, provider);
                             return newAttachment;
                         }
                     }).build());

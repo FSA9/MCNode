@@ -1,5 +1,6 @@
 package com.mine.geometry_node.core.execution.variables;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
 
 /**
@@ -21,10 +22,22 @@ public interface VariableSerializer<T> {
     /**
      * 打包：将 Java 对象转换为原版 NBT 标签
      */
-    Tag serialize(T value);
+    default Tag serialize(T value) {
+        throw new UnsupportedOperationException("This serializer requires a HolderLookup.Provider");
+    }
 
     /**
      * 拆包：将 NBT 标签还原为 Java 对象
      */
-    T deserialize(Tag tag);
+    default T deserialize(Tag tag) {
+        throw new UnsupportedOperationException("This serializer requires a HolderLookup.Provider");
+    }
+
+    default Tag serialize(T value, HolderLookup.Provider provider) {
+        return serialize(value);
+    }
+
+    default T deserialize(Tag tag, HolderLookup.Provider provider) {
+        return deserialize(tag);
+    }
 }

@@ -29,7 +29,7 @@ public class LevelGraphAttachment extends SavedData {
     // 活跃进程列表
     private final List<GraphProcess> processes = new ArrayList<>();
 
-    private final CompoundTag attributes = new CompoundTag();
+    private final java.util.Map<String, Object> attributes = new java.util.HashMap<>();
 
     /**
      * 工厂实例，用于 SavedData 的创建和加载机制。
@@ -55,15 +55,13 @@ public class LevelGraphAttachment extends SavedData {
         if (value == null) {
             this.attributes.remove(key);
         } else {
-            net.minecraft.nbt.Tag tag = com.mine.geometry_node.core.execution.variables.VariableRegistry.toTag(value);
-            if (tag != null) this.attributes.put(key, tag);
+            this.attributes.put(key, value);
         }
-        this.setDirty(); // 标记脏数据，让 MC 存盘
+        this.setDirty();
     }
 
     public Object getAttribute(String key) {
-        if (!this.attributes.contains(key)) return null;
-        return com.mine.geometry_node.core.execution.variables.VariableRegistry.fromTag(this.attributes.get(key));
+        return this.attributes.get(key);
     }
 
     // --- Constructor ---
@@ -129,10 +127,10 @@ public class LevelGraphAttachment extends SavedData {
         if (tag.contains("Attributes", Tag.TAG_COMPOUND)) {
             CompoundTag attrTag = tag.getCompound("Attributes");
             for (String key : attrTag.getAllKeys()) {
-                attachment.attributes.put(key, attrTag.get(key).copy());
+                Object obj = com.mine.geometry_node.core.execution.variables.VariableRegistry.fromTag(attrTag.get(key), provider);
+                if (obj != null) attachment.attributes.put(key, obj);
             }
         }
-
         return attachment;
     }
 
@@ -148,7 +146,12 @@ public class LevelGraphAttachment extends SavedData {
             tag.put(TAG_PROCESSES, processList);
         }
         if (!attributes.isEmpty()) {
-            tag.put("Attributes", attributes.copy());
+            CompoundTag attrTag = new CompoundTag();
+            for (java.util.Map.Entry<String, Object> entry : attributes.entrySet()) {
+                net.minecraft.nbt.Tag t = com.mine.geometry_node.core.execution.variables.VariableRegistry.toTag(entry.getValue(), provider);
+                if (t != null) attrTag.put(entry.getKey(), t);
+            }
+            tag.put("Attributes", attrTag);
         }
         return tag;
     }

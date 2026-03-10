@@ -3,6 +3,7 @@ package com.mine.geometry_node.core.execution.attachment;
 import com.mine.geometry_node.core.execution.GraphProcess;
 import com.mine.geometry_node.core.execution.storage.GraphResourceManager;
 import com.mine.geometry_node.core.execution.RuntimeGraphIndex;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -32,7 +33,7 @@ public class GraphDataAttachment {
     private final List<GraphProcess> processes = new ArrayList<>();
 
     // 持久化属性存储 (Attribute 节点)
-    private final CompoundTag attributes = new CompoundTag();
+    private final java.util.Map<String, Object> attributes = new java.util.HashMap<>();
 
     // Constructor
 
@@ -99,18 +100,11 @@ public class GraphDataAttachment {
     // Attribute
 
     public void setAttribute(String key, Object value) {
-        if (value == null) {
-            this.attributes.remove(key);
-        } else {
-            // 这里需要 import com.mine.geometry_node.core.execution.variables.VariableRegistry;
-            net.minecraft.nbt.Tag tag = com.mine.geometry_node.core.execution.variables.VariableRegistry.toTag(value);
-            if (tag != null) this.attributes.put(key, tag);
-        }
+        if (value == null) this.attributes.remove(key);
+        else this.attributes.put(key, value);
     }
-
     public Object getAttribute(String key) {
-        if (!this.attributes.contains(key)) return null;
-        return com.mine.geometry_node.core.execution.variables.VariableRegistry.fromTag(this.attributes.get(key));
+        return this.attributes.get(key);
     }
 
     // Serialization (NBT)
@@ -118,7 +112,7 @@ public class GraphDataAttachment {
     /**
      * 序列化逻辑：保存绑定关系以及当前挂起的进程状态。
      */
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         // 保存绑定关系
         if (!boundGraphs.isEmpty()) {
             ListTag boundList = new ListTag();
@@ -140,16 +134,20 @@ public class GraphDataAttachment {
         }
 
         if (!attributes.isEmpty()) {
-            tag.put("Attributes", attributes.copy());
+            CompoundTag attrTag = new CompoundTag();
+            for (java.util.Map.Entry<String, Object> entry : attributes.entrySet()) {
+                net.minecraft.nbt.Tag t = com.mine.geometry_node.core.execution.variables.VariableRegistry.toTag(entry.getValue(), provider);
+                if (t != null) attrTag.put(entry.getKey(), t);
+            }
+            tag.put("Attributes", attrTag);
         }
-
         return tag;
     }
 
     /**
      * 反序列化逻辑：恢复绑定关系和进程状态。
      */
-    public void load(CompoundTag tag) {
+    public void load(CompoundTag tag, HolderLookup.Provider provider) {
         this.boundGraphs.clear();
         this.processes.clear();
 
@@ -178,11 +176,12 @@ public class GraphDataAttachment {
                 }
             }
         }
-        this.attributes.getAllKeys().clear();
+        this.attributes.clear();
         if (tag.contains("Attributes", Tag.TAG_COMPOUND)) {
             CompoundTag attrTag = tag.getCompound("Attributes");
             for (String key : attrTag.getAllKeys()) {
-                this.attributes.put(key, attrTag.get(key).copy());
+                Object obj = com.mine.geometry_node.core.execution.variables.VariableRegistry.fromTag(attrTag.get(key), provider);
+                if (obj != null) this.attributes.put(key, obj);
             }
         }
     }

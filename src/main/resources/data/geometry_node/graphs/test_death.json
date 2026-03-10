@@ -1,74 +1,30 @@
 {
-  "graph_name": "Flow Branch Robustness Test",
+  "graph_name": "Jump On Block Place",
   "version": "0.0.1",
   "nodes": {
     "node_evt_place_01": {
-      "node_type": "event_on_block_place",
+      "node_type": "on_block_place",
       "UI_pos": [100.0, 300.0],
       "properties": {},
       "inputs": {},
       "execution": {
-        "flow_out": "node_branch_01"
+        "flow_out": "node_add_force_01"
       },
       "outputs": {
         "entity": [
           {
-            "target_node": "node_msg_1",
-            "target_port": "target"
-          },
-          {
-            "target_node": "node_msg_2",
-            "target_port": "target"
-          },
-          {
-            "target_node": "node_msg_3",
+            "target_node": "node_add_force_01",
             "target_port": "target"
           }
         ]
       }
     },
-    "node_branch_01": {
-      "node_type": "flow_switch",
+    "node_add_force_01": {
+      "node_type": "action_add_force",
       "UI_pos": [450.0, 300.0],
       "properties": {},
       "inputs": {
-        "case_1": true,
-        "case_2": false,
-        "case_3": true
-      },
-      "execution": {
-        "flow_out_1": "node_msg_1",
-        "flow_out_2": "node_msg_2",
-        "flow_out_3": "node_msg_3"
-      },
-      "outputs": {}
-    },
-    "node_msg_1": {
-      "node_type": "action_send_message",
-      "UI_pos": [800.0, 150.0],
-      "properties": {},
-      "inputs": {
-        "message": "1"
-      },
-      "execution": {},
-      "outputs": {}
-    },
-    "node_msg_2": {
-      "node_type": "action_send_message",
-      "UI_pos": [800.0, 300.0],
-      "properties": {},
-      "inputs": {
-        "message": "2"
-      },
-      "execution": {},
-      "outputs": {}
-    },
-    "node_msg_3": {
-      "node_type": "action_send_message",
-      "UI_pos": [800.0, 450.0],
-      "properties": {},
-      "inputs": {
-        "message": "3"
+        "xyz": [0.0, 1.0, 0.0]
       },
       "execution": {},
       "outputs": {}

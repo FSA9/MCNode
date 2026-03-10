@@ -120,7 +120,7 @@ public interface ExecutionContext {
 
     /**
      * 检查当前执行节点是否定义了某个特定的输入端口。
-     * 用于 Flow_Switch 等动态端口节点进行循环探测。
+     * 用于 Switch 等动态端口节点进行循环探测。
      */
     boolean hasPort(String portName);
 

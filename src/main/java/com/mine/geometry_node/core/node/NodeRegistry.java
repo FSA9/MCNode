@@ -2,15 +2,16 @@ package com.mine.geometry_node.core.node;
 
 import com.mine.geometry_node.core.node.nodes.BaseNode;
 import com.mine.geometry_node.core.node.nodes.NodeDef;
-import com.mine.geometry_node.core.node.nodes.actions.Action_SendMessage;
-import com.mine.geometry_node.core.node.nodes.attributes.GetAttribute;
-import com.mine.geometry_node.core.node.nodes.attributes.SetAttribute;
-import com.mine.geometry_node.core.node.nodes.events.Event_OnBlockBreak;
-import com.mine.geometry_node.core.node.nodes.events.Event_OnBlockPlace;
-import com.mine.geometry_node.core.node.nodes.events.Event_OnEntityDeath;
-import com.mine.geometry_node.core.node.nodes.flows.Flow_Switch;
-import com.mine.geometry_node.core.node.nodes.functions.communication.Communication_ReceiveBlueprint;
-import com.mine.geometry_node.core.node.nodes.functions.communication.Communication_TriggerBlueprint;
+import com.mine.geometry_node.core.node.nodes.actions.entity.AddForce;
+import com.mine.geometry_node.core.node.nodes.actions.entity.SendMessage;
+import com.mine.geometry_node.core.node.nodes.data.GetAttribute;
+import com.mine.geometry_node.core.node.nodes.data.SetAttribute;
+import com.mine.geometry_node.core.node.nodes.events.OnBlockBreak;
+import com.mine.geometry_node.core.node.nodes.events.OnBlockPlace;
+import com.mine.geometry_node.core.node.nodes.events.entity.OnEntityDeath;
+import com.mine.geometry_node.core.node.nodes.logics.Switch;
+import com.mine.geometry_node.core.node.nodes.functions.graph.ReceiveBlueprint;
+import com.mine.geometry_node.core.node.nodes.functions.graph.TriggerBlueprint;
 import com.mine.geometry_node.core.node.nodes.functions.time.Function_Delay_s;
 import com.mine.geometry_node.core.node.nodes.maths.operation.Math_Operation;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +38,7 @@ public class NodeRegistry {
 
     // 二级目录
     public final NodeCategory MATHS_OPERATION = new NodeCategory("geometry_node.menu.operation");
-    public final NodeCategory COMM = new NodeCategory("geometry_node.menu.communication");
+    public final NodeCategory COMM = new NodeCategory("geometry_node.menu.graph");
     public final NodeCategory TEXT = new NodeCategory("geometry_node.menu.text");
     public final NodeCategory TIME = new NodeCategory("geometry_node.menu.time");
     public final NodeCategory VECTOR = new NodeCategory("geometry_node.menu.vector");
@@ -63,27 +64,28 @@ public class NodeRegistry {
         System.out.println("[GeometryNode] Registering built-in nodes...");
 
         // Events
-        register(EVENTS, new Event_OnBlockBreak());
-        register(EVENTS, new Event_OnBlockPlace());
-        register(EVENTS, new Event_OnEntityDeath());
+        register(EVENTS, new OnBlockBreak());
+        register(EVENTS, new OnBlockPlace());
+        register(EVENTS, new OnEntityDeath());
 
         // Actions
-        register(ACTIONS, new Action_SendMessage());
+        register(ACTIONS, new SendMessage());
+        register(ACTIONS, new AddForce());
 
         // Attribute
         register(ATTRIBUTES, new SetAttribute());
         register(ATTRIBUTES, new GetAttribute());
 
         // Flows
-        register(FLOWS, new Flow_Switch());
+        register(FLOWS, new Switch());
 
         // Maths
         register(MATHS_OPERATION, new Math_Operation());
 
         // Functions
         register(FUNCTIONS, new Function_Delay_s());
-        register(COMM, new Communication_ReceiveBlueprint());
-        register(COMM, new Communication_TriggerBlueprint());
+        register(COMM, new ReceiveBlueprint());
+        register(COMM, new TriggerBlueprint());
 
         System.out.println("[GeometryNode] Successfully registered " + registry.size() + " nodes.");
     }

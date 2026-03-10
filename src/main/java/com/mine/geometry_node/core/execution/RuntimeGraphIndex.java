@@ -11,18 +11,12 @@ import java.util.*;
 
 /**
  * [运行时图索引] (不可变 / 只读)
- * <p>
- * 直接从 JSON 结构构建。将 JSON 中的“连接关系”预编译为内存中的哈希索引表。
- * <p>
- * 变更日志 (Phase 1.1):
- * - 适配新 JSON 规范 (execution, outputs, inputs, properties)。
- * - 实现静态输入值 (inputs) 与 属性配置 (properties) 的分离索引。
  */
 public class RuntimeGraphIndex {
 
-    // ==================================================================================
+    // ===========================================
     // 1. 核心索引字段 (Fields)
-    // ==================================================================================
+    // ===========================================
 
     // 原始 JSON 节点存储 (用于获取 raw data 或调试)
     private final Map<String, JsonObject> nodeDataLookup;
@@ -43,9 +37,9 @@ public class RuntimeGraphIndex {
     private final Map<String, List<String>> typeLookup;
 
 
-    // ==================================================================================
-    // 2. 构造器与工厂方法 (Constructors & Factory)
-    // ==================================================================================
+    // ===========================================
+    // 构造器与工厂方法
+    // ===========================================
 
     private RuntimeGraphIndex(Map<String, JsonObject> nodes,
                               Map<String, Map<String, String>> flow,
@@ -68,7 +62,7 @@ public class RuntimeGraphIndex {
         JsonObject root = JsonParser.parseReader(jsonReader).getAsJsonObject();
         JsonObject rootNodes = root.getAsJsonObject("nodes");
 
-        // 1. 快速扫描是否包含节点组 (优化性能 & 方便调试)
+        // 快速扫描是否包含节点组
         boolean hasGroups = false;
         for (String key : rootNodes.keySet()) {
             JsonObject node = rootNodes.getAsJsonObject(key);
@@ -102,9 +96,9 @@ public class RuntimeGraphIndex {
     }
 
 
-    // ==================================================================================
-    // 3. 公开查询 API (Public Query APIs) - O(1) 复杂度
-    // ==================================================================================
+    // ===========================================
+    // 公开查询 API - O(1)
+    // ===========================================
 
     /**
      * 获取节点类型
@@ -115,7 +109,7 @@ public class RuntimeGraphIndex {
     }
 
     /**
-     * 严格查询端口是否存在 (不关心值)
+     * 严格查询端口是否存在
      */
     public boolean hasPort(String nodeId, String portName) {
         JsonObject node = nodeDataLookup.get(nodeId);
@@ -171,9 +165,9 @@ public class RuntimeGraphIndex {
     }
 
 
-    // ==================================================================================
-    // 4. 核心验证逻辑 (Validation Logic)
-    // ==================================================================================
+    // ===========================================
+    // 核心验证逻辑
+    // ===========================================
 
     private static void validateNoDataCycles(Map<String, ConnectionSource> inputLookup) {
         Map<String, Set<String>> dependencyGraph = new HashMap<>();
@@ -213,15 +207,20 @@ public class RuntimeGraphIndex {
     }
 
 
-    // ==================================================================================
-    // 5. 内部辅助方法 (Internal Helpers) - 供包内其他类(如 Flattener)使用
-    // ==================================================================================
+    // ===========================================
+    // 5. 内部辅助方法
+    // ===========================================
 
     static Map<String, Object> parseValueMap(JsonObject obj) {
         Map<String, Object> map = new HashMap<>();
         for (String key : obj.keySet()) {
             JsonElement val = obj.get(key);
-            map.put(key, unwrapJsonElement(val));
+            Object unwrapped = unwrapJsonElement(val);
+            if (unwrapped != null) {
+                map.put(key, unwrapped);
+            } else {
+                System.err.println("[RuntimeGraphIndex] Warning: Ignored null/unsupported value for key: " + key);
+            }
         }
         return Map.copyOf(map);
     }
@@ -233,6 +232,15 @@ public class RuntimeGraphIndex {
             if (prim.isNumber()) return prim.getAsNumber();
             if (prim.isString()) return prim.getAsString();
         }
+        // JSON解析
+        if (element.isJsonArray()) {
+            JsonArray jsonArray = element.getAsJsonArray();
+            List<Object> list = new ArrayList<>();
+            for (JsonElement item : jsonArray) {
+                list.add(unwrapJsonElement(item));
+            }
+            return list;
+        }
         return null;
     }
 
@@ -241,9 +249,9 @@ public class RuntimeGraphIndex {
     }
 
 
-    // ==================================================================================
+    // ===========================================
     // 6. 内部数据结构 (Nested Types)
-    // ==================================================================================
+    // ===========================================
 
     /**
      * 表示数据流连接的源头信息

@@ -89,7 +89,7 @@ public class GlobalGraphStorage extends SavedData {
         }
     }
 
-    // NBT Serialization (Save & Load)
+    // NBT Serialization
 
     /**
      * 从磁盘 NBT 数据恢复状态。

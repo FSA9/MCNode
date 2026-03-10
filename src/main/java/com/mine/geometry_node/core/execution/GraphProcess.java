@@ -1,11 +1,18 @@
 package com.mine.geometry_node.core.execution;
 
+import com.mine.geometry_node.GeometryNode;
+import com.mine.geometry_node.core.execution.attachment.GraphDataAttachment;
+import com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment;
 import com.mine.geometry_node.core.execution.variables.VariableRegistry;
 import com.mine.geometry_node.core.node.NodeRegistry;
 import com.mine.geometry_node.core.node.nodes.BaseNode;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -314,7 +321,6 @@ public class GraphProcess {
         }
     }
 
-
     // ====================================================
     // 数据拉取模型
     // ====================================================
@@ -555,32 +561,64 @@ public class GraphProcess {
 
         @Override
         public void setPersistentAttribute(@Nullable Object target, String name, Object value) {
-            // 1. 目标是实体：存入实体的 GraphDataAttachment
+            if (target == null) return;
+
+            // 1. 实体层级
             if (target instanceof Entity ent) {
-                // 请确保 import com.mine.geometry_node.GeometryNode;
-                com.mine.geometry_node.core.execution.attachment.GraphDataAttachment att =
-                        ent.getData(com.mine.geometry_node.GeometryNode.GRAPH_DATA_ATTACHMENT);
+                GraphDataAttachment att = ent.getData(GeometryNode.GRAPH_DATA_ATTACHMENT);
                 if (att != null) att.setAttribute(name, value);
             }
-            // 2. 目标为空：存入全局/当前维度的 LevelGraphAttachment
-            else if (target == null && level != null) {
-                com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment att =
-                        com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment.get(level);
+            // 2. 全局层级 - "GLOBAL"
+            else if ("GLOBAL".equals(target) && level != null) {
+                LevelGraphAttachment att = LevelGraphAttachment.get(level.getServer().overworld());
                 att.setAttribute(name, value);
+            }
+            // 3. 维度层级 (如 "minecraft:overworld")
+            else if (target instanceof String dimId && level != null) {
+                ResourceLocation loc = ResourceLocation.tryParse(dimId);
+
+                if (loc != null) {
+                    ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, loc);
+
+                    ServerLevel targetLevel = level.getServer().getLevel(dimKey);
+                    if (targetLevel != null) {LevelGraphAttachment att = LevelGraphAttachment.get(targetLevel);
+                        att.setAttribute(name, value);
+                    }
+                } else {
+                    System.err.println("GraphProcess: Invalid dimension format -> " + dimId);
+                }
             }
         }
 
         @Override
         public Object getPersistentAttribute(@Nullable Object target, String name) {
+            if (target == null) return null; // 严格模式
+
+            // 1. 实体层级
             if (target instanceof Entity ent) {
-                com.mine.geometry_node.core.execution.attachment.GraphDataAttachment att =
-                        ent.getData(com.mine.geometry_node.GeometryNode.GRAPH_DATA_ATTACHMENT);
+                GraphDataAttachment att = ent.getData(GeometryNode.GRAPH_DATA_ATTACHMENT);
                 return att != null ? att.getAttribute(name) : null;
             }
-            else if (target == null && level != null) {
-                com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment att =
-                        com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment.get(level);
+            // 2. 全局层级
+            else if ("GLOBAL".equals(target) && level != null) {
+                LevelGraphAttachment att = LevelGraphAttachment.get(level.getServer().overworld());
                 return att.getAttribute(name);
+            }
+            // 3. 维度层级
+            else if (target instanceof String dimId && level != null) {
+                ResourceLocation loc = ResourceLocation.tryParse(dimId);
+
+                if (loc != null) {
+                    ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, loc);
+
+                    ServerLevel targetLevel = level.getServer().getLevel(dimKey);
+                    if (targetLevel != null) {
+                        LevelGraphAttachment att = LevelGraphAttachment.get(targetLevel);
+                        return att.getAttribute(name);
+                    }
+                } else {
+                    System.err.println("GraphProcess: Invalid dimension format -> " + dimId);
+                }
             }
             return null;
         }

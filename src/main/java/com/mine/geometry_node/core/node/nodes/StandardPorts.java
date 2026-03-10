@@ -8,15 +8,22 @@ public enum StandardPorts {
     // Flow
     FLOW_IN("flow_in", PortType.EXECUTION),
     FLOW_OUT("flow_out", PortType.EXECUTION),
+    FLOW_TRUE("flow_true", PortType.EXECUTION),
+    FLOW_FALSE("flow_false", PortType.EXECUTION),
 
     // Bool
+    BOOL("bool", PortType.BOOLEAN),
     CASE("case", PortType.BOOLEAN),
+
 
     // Float
     VALUE("value", PortType.FLOAT),
+    RADIUS("radius", PortType.FLOAT),
     TIME("time", PortType.FLOAT),
 
     // String
+    NAME("name", PortType.STRING),
+    TYPE("type", PortType.STRING),
     MESSAGE("message", PortType.STRING),
     DIMENSION("dimension", PortType.STRING),
     DAMAGE_TYPE("damage_type", PortType.STRING),
@@ -24,14 +31,27 @@ public enum StandardPorts {
     // Entity
     ENTITY("entity", PortType.ENTITY),
     TARGET("target", PortType.ENTITY),
+    TRIGGER_ENTITY("trigger_entity", PortType.ENTITY),
+    SOURCE_ENTITY("source_entity", PortType.ENTITY),
     ATTACK_SOURCE("attack_source", PortType.ENTITY),
     DIRECT_SOURCE("direct_source", PortType.ENTITY),
 
     // Block
     BLOCK_STATE("block_state", PortType.BLOCK),
 
+    // Item
+    ITEM("item", PortType.ITEM),
+
+    // LIST
+    LIST("list", PortType.LIST),
+
     // XYZ
-    XYZ("xyz", PortType.XYZ);
+    XYZ("xyz", PortType.XYZ),
+    CENTER("center", PortType.XYZ),
+
+    // ANY
+
+    ANY_VALUE("any_value", PortType.ANY);
 
     private final String id;
     private final PortType type;
@@ -64,39 +84,26 @@ public enum StandardPorts {
         return PortDef.exec(id, getTranslationKey());
     }
 
-    // --- 增强构建工厂 (带后缀支持) ---
+    // --- 增强构建工厂 ---
 
-    /**
-     * 生成带序号后缀的输入端口。
-     * 例如 VALUE.toInputWithIndex(1) -> id="value_1", name="...value_1"
-     */
+    public String getIdWithIndex(int index) {
+        return id + "_" + index;
+    }
+
     public PortDef toInputWithIndex(int index) {
-        String newId = id + "_" + index;
-        return PortDef.create(newId, getTranslationKey(), type);
+        return PortDef.create(getIdWithIndex(index), getTranslationKey(), type);
     }
 
-    /**
-     * 生成带序号后缀的输入端口 (带默认值覆盖)。
-     */
     public PortDef toInputWithIndex(int index, Object defaultValueOverride) {
-        String newId = id + "_" + index;
-        return PortDef.create(newId, getTranslationKey(), type, defaultValueOverride);
+        return PortDef.create(getIdWithIndex(index), getTranslationKey(), type, defaultValueOverride);
     }
 
-    /**
-     * 生成带序号后缀的输出端口。
-     */
     public PortDef toOutputWithIndex(int index) {
-        String newId = id + "_" + index;
-        return PortDef.create(newId, getTranslationKey(), type);
+        return PortDef.create(getIdWithIndex(index), getTranslationKey(), type);
     }
 
-    /**
-     * 生成带序号后缀的执行流端口。
-     */
     public PortDef toExecWithIndex(int index) {
         if (type != PortType.EXECUTION) throw new IllegalStateException("Not exec port: " + id);
-        String newId = id + "_" + index;
-        return PortDef.exec(newId, getTranslationKey());
+        return PortDef.exec(getIdWithIndex(index), getTranslationKey());
     }
 }
