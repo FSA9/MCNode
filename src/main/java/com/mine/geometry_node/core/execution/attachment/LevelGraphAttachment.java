@@ -117,7 +117,7 @@ public class LevelGraphAttachment extends SavedData {
 
                 RuntimeGraphIndex index = GraphResourceManager.getInstance().getIndex(graphId);
                 if (index != null) {
-                    GraphProcess process = new GraphProcess(processTag, index);
+                    GraphProcess process = new GraphProcess(processTag, index, provider);
                     attachment.processes.add(process);
                 } else {
                     System.err.printf("[LevelGraphAttachment] Failed to restore global process '%s' - Graph not found.%n", graphId);
@@ -140,7 +140,7 @@ public class LevelGraphAttachment extends SavedData {
             ListTag processList = new ListTag();
             for (GraphProcess process : processes) {
                 CompoundTag processTag = new CompoundTag();
-                process.save(processTag);
+                process.save(processTag, provider);
                 processList.add(processTag);
             }
             tag.put(TAG_PROCESSES, processList);

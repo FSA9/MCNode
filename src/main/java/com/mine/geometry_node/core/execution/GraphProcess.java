@@ -6,6 +6,7 @@ import com.mine.geometry_node.core.execution.attachment.LevelGraphAttachment;
 import com.mine.geometry_node.core.execution.variables.VariableRegistry;
 import com.mine.geometry_node.core.node.NodeRegistry;
 import com.mine.geometry_node.core.node.nodes.BaseNode;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceKey;
@@ -90,7 +91,7 @@ public class GraphProcess {
     /**
      * [断点续传] 从 NBT 存档中反序列化恢复执行进程。
      */
-    public GraphProcess(CompoundTag tag, RuntimeGraphIndex index) {
+    public GraphProcess(CompoundTag tag, RuntimeGraphIndex index, HolderLookup.Provider provider) {
         this.index = index;
         this.context = new InnerContext();
 
@@ -115,7 +116,8 @@ public class GraphProcess {
         if (tag.contains("EventData", Tag.TAG_COMPOUND)) {
             CompoundTag eventTag = tag.getCompound("EventData");
             for (String key : eventTag.getAllKeys()) {
-                Object deserialized = VariableRegistry.fromTag(eventTag.get(key));
+                // 修改点 1：传入 provider
+                Object deserialized = VariableRegistry.fromTag(eventTag.get(key), provider);
                 if (deserialized != null) {
                     this.eventData.put(key, deserialized);
                 }
@@ -128,7 +130,8 @@ public class GraphProcess {
             ListTag stackTag = tag.getList("VariableStack", Tag.TAG_COMPOUND);
             for (int i = 0; i < stackTag.size(); i++) {
                 Map<String, Object> scope = new HashMap<>();
-                loadVariables(stackTag.getCompound(i), scope);
+                // 修改点 2：传入 provider
+                loadVariables(stackTag.getCompound(i), scope, provider);
                 this.variableStack.addLast(scope);
             }
         } else {
@@ -136,6 +139,7 @@ public class GraphProcess {
         }
 
         // 5. 恢复执行指令栈
+        // ... (保持原样)
         this.executionStack.clear();
         if (tag.contains("ExecutionStack", Tag.TAG_LIST)) {
             ListTag list = tag.getList("ExecutionStack", Tag.TAG_STRING);
@@ -376,7 +380,7 @@ public class GraphProcess {
     // 序列化&反序列化
     // ====================================================
 
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         // 1. 基础状态
         tag.putString("GraphId", graphId);
         tag.putString("State", state.name());
@@ -407,7 +411,8 @@ public class GraphProcess {
             CompoundTag eventTag = new CompoundTag();
             eventData.forEach((key, val) -> {
                 Object toSave = (val instanceof Entity ent) ? ent.getUUID() : val;
-                Tag serialized = VariableRegistry.toTag(toSave);
+                // 修改点 3：传入 provider
+                Tag serialized = VariableRegistry.toTag(toSave, provider);
                 if (serialized != null) {
                     eventTag.put(key, serialized);
                 }
@@ -421,7 +426,8 @@ public class GraphProcess {
         while (it.hasNext()) {
             Map<String, Object> scope = it.next();
             CompoundTag scopeTag = new CompoundTag();
-            saveVariables(scopeTag, scope);
+            // 修改点 4：传入 provider
+            saveVariables(scopeTag, scope, provider);
             stackTag.add(scopeTag);
         }
         tag.put("VariableStack", stackTag);
@@ -442,18 +448,18 @@ public class GraphProcess {
         return VariableRegistry.isSupported(v);
     }
 
-    private void saveVariables(CompoundTag tag, Map<String, Object> scope) {
+    private void saveVariables(CompoundTag tag, Map<String, Object> scope, HolderLookup.Provider provider) {
         scope.forEach((key, val) -> {
-            Tag serialized = VariableRegistry.toTag(val);
+            Tag serialized = VariableRegistry.toTag(val, provider);
             if (serialized != null) {
                 tag.put(key, serialized);
             }
         });
     }
 
-    private void loadVariables(CompoundTag tag, Map<String, Object> scope) {
+    private void loadVariables(CompoundTag tag, Map<String, Object> scope, HolderLookup.Provider provider) {
         for (String key : tag.getAllKeys()) {
-            Object deserialized = VariableRegistry.fromTag(tag.get(key));
+            Object deserialized = VariableRegistry.fromTag(tag.get(key), provider);
             if (deserialized != null) {
                 scope.put(key, deserialized);
             }

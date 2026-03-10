@@ -127,7 +127,7 @@ public class GraphDataAttachment {
             ListTag processList = new ListTag();
             for (GraphProcess process : processes) {
                 CompoundTag processTag = new CompoundTag();
-                process.save(processTag);
+                process.save(processTag, provider);
                 processList.add(processTag);
             }
             tag.put("ActiveProcesses", processList);
@@ -169,7 +169,7 @@ public class GraphDataAttachment {
                 RuntimeGraphIndex index = GraphResourceManager.getInstance().getIndex(graphId);
 
                 if (index != null) {
-                    GraphProcess process = new GraphProcess(processTag, index);
+                    GraphProcess process = new GraphProcess(processTag, index, provider);
                     this.processes.add(process);
                 } else {
                     System.err.printf("[GraphDataAttachment] Failed to restore process '%s' - Graph Index not found.%n", graphId);
